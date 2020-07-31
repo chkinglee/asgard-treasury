@@ -15,6 +15,35 @@ case $# in
 esac
 
 
+function check_system_tools() {
+    local dependecy_tools=(make cmake gcc gcc-c++ openssl-devel ncurses-devel)
+    local need_install_num=0
+    local need_install_tools=()
+    for tool in ${dependecy_tools[@]}
+    do
+        count=`yum list installed | grep -w $tool | wc -l`
+        if [[ $count -eq 0 ]];then
+            need_install_tools[$need_install_num]=$tool
+            need_install_num=`expr $need_install_num + 1`
+        fi
+    done
+    echo "待安装的工具：${need_install_tools[@]}"
+    if [[ `whoami` != "root" ]];then
+    fi
+
+}
+                           
+
+
+
+
+
+
+
+
+
+
+
 #安装依赖工具
 yum -y install make gcc gcc-g++ cmake openssl-devel ncurses-devel
 if [[ $? -ne 0  ]];then
