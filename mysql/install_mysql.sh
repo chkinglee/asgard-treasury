@@ -19,36 +19,31 @@ function check_system_tools() {
     local dependecy_tools=(make cmake gcc gcc-c++ openssl-devel ncurses-devel)
     local need_install_num=0
     local need_install_tools=()
+
+    echo "检查依赖工具包是否安装 ${dependecy_tools[@]}"
+
     for tool in ${dependecy_tools[@]}
     do
         count=`yum list installed | grep -w $tool | wc -l`
-        if [[ $count -eq 0 ]];then
+        if [[ $count -ne 0 ]];then
             need_install_tools[$need_install_num]=$tool
             need_install_num=`expr $need_install_num + 1`
         fi
     done
-    echo "待安装的工具：${need_install_tools[@]}"
-    if [[ `whoami` != "root" ]];then
+
+    if [[ ${#need_install_tools[@]} -ne 0 ]];then
+      echo "有待安装的工具：${need_install_tools[@]}"
+      if [[ `whoami` != "root" ]];then
+        echo "NEED ROOT POWER"
+        exit
+      else
+        yum -y install ${need_install_tools[@]}
+      fi
     fi
 
+    echo "检查完成，等待60s"
+    sleep 60
 }
-                           
-
-
-
-
-
-
-
-
-
-
-
-#安装依赖工具
-yum -y install make gcc gcc-g++ cmake openssl-devel ncurses-devel
-if [[ $? -ne 0  ]];then
-    echo "请手动安装依赖工具"
-fi
 
 function log() {
   local epath=$(pwd)
@@ -306,7 +301,7 @@ enforce-gtid-consistency        = on
 innodb_file_per_table
 innodb_file_format = Barracuda
 
-#innodb_status_file              = 1
+#innodb_status_file             = 1
 #innodb_open_files              = 2048
 innodb_buffer_pool_size         = 8G
 innodb_data_home_dir            = ${bpath}/var
@@ -361,17 +356,17 @@ do_cmd cd ./release
 export CFLAGS="-O3 -g"
 export CXXFLAGS="-O3 -g"
 
-cmake .. -DCMAKE_INSTALL_PREFIX=${bpath}\
--DMYSQL_DATADIR=${bpath}/var\
--DINSTALL_MYSQLDATADIR=var\
--DINSTALL_SBINDIR=libexec\
--DINSTALL_LIBDIR=lib/mysql\
--DSYSCONFDIR=${bpath}/etc\
--DMYSQL_UNIX_ADDR=${bpath}/tmp/mysql.sock\
--DINSTALL_PLUGINDIR=lib/plugin\
--DINSTALL_SCRIPTDIR=bin\
--DINSTALL_MYSQLSHAREDIR=share\
--DINSTALL_SUPPORTFILESDIR=share/mysql\
+cmake .. -DCMAKE_INSTALL_PREFIX=${bpath} \
+-DMYSQL_DATADIR=${bpath}/var \
+-DINSTALL_MYSQLDATADIR=var \
+-DINSTALL_SBINDIR=libexec \
+-DINSTALL_LIBDIR=lib/mysql \
+-DSYSCONFDIR=${bpath}/etc \
+-DMYSQL_UNIX_ADDR=${bpath}/tmp/mysql.sock \
+-DINSTALL_PLUGINDIR=lib/plugin \
+-DINSTALL_SCRIPTDIR=bin \
+-DINSTALL_MYSQLSHAREDIR=share \
+-DINSTALL_SUPPORTFILESDIR=share/mysql \
 -DCMAKE_C_FLAGS='-O3 -g' \
 -DCMAKE_CXX_FLAGS='-O3 -g' \
 -DCMAKE_C_FLAGS_RELEASE='-O3 -g' \
@@ -379,16 +374,16 @@ cmake .. -DCMAKE_INSTALL_PREFIX=${bpath}\
 -DDEFAULT_CHARSET=utf8 \
 -DDEFAULT_COLLATION=utf8_general_ci \
 -DWITH_EXTRA_CHARSETS=all \
--DWITH_UNIT_TESTS=0\
--DWITH_DEBUG=0\
--DWITH_PERFSCHEMA_STORAGE_ENGINE=1\
--DWITH_INNODB_MEMCACHED=1\
--DWITH_MYISAM_STORAGE_ENGINE=1\
--DWITH_INNOBASE_STORAGE_ENGINE=1\
--DWITH_ARCHIVE_STORAGE_ENGINE=0\
+-DWITH_UNIT_TESTS=0 \
+-DWITH_DEBUG=0 \
+-DWITH_PERFSCHEMA_STORAGE_ENGINE=1 \
+-DWITH_INNODB_MEMCACHED=1 \
+-DWITH_MYISAM_STORAGE_ENGINE=1 \
+-DWITH_INNOBASE_STORAGE_ENGINE=1 \
+-DWITH_ARCHIVE_STORAGE_ENGINE=0 \
 -DWITH_PARTITION_STORAGE_ENGINE=1 \
--DENABLED_PROFILING=1\
--DWITH_ZLIB=bundled\
+-DENABLED_PROFILING=1 \
+-DWITH_ZLIB=bundled \
 -DENABLED_LOCAL_INFILE=1
 
 do_cmd make -j8
