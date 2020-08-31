@@ -25,7 +25,7 @@ function check_system_tools() {
     for tool in ${dependecy_tools[@]}
     do
         count=`yum list installed | grep -w $tool | wc -l`
-        if [[ $count -ne 0 ]];then
+        if [[ $count -eq 0 ]];then
             need_install_tools[$need_install_num]=$tool
             need_install_num=`expr $need_install_num + 1`
         fi
@@ -66,6 +66,7 @@ function do_cmd() {
   fi
 }
 
+check_system_tools
 debug=1
 
 if [ ${target_path:0:1} = "." ]; then
@@ -80,8 +81,8 @@ server_id=$(ping -4 -c 1 $(hostname) | head -n 1 | awk '{print $3}' | sed -r 's/
 server_id="${server_id}${sec}"
 server_id=$(($server_id % 4294967295))
 
-tar zxvf mysql-5648.tar.gz
-src_path="mysql-5648"
+tar zxvf mysql-5.6.49.tar.gz
+src_path="mysql-5.6.49"
 
 ps -ef | grep $bpath/ | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1
 do_cmd rm -rf $bpath
@@ -261,8 +262,8 @@ slow_query_log           = 1
 slow_query_log_file      = ${bpath}/log/slow.log
 #log-queries-not-using-indexes
 # general query log
-general_log				= 1
-general_log_file                      = ${bpath}/log/mysql.log
+general_log              = 1
+general_log_file         = ${bpath}/log/mysql.log
 max_binlog_size          = 1G
 max_relay_log_size       = 1G
 
@@ -301,8 +302,8 @@ enforce-gtid-consistency        = on
 innodb_file_per_table
 innodb_file_format = Barracuda
 
-#innodb_status_file             = 1
-#innodb_open_files              = 2048
+#innodb_status_file              = 1
+#innodb_open_files               = 2048
 innodb_buffer_pool_size         = 8G
 innodb_data_home_dir            = ${bpath}/var
 innodb_data_file_path           = ibdata1:1G:autoextend
@@ -422,6 +423,7 @@ until [ -f $bpath/var/mysql.pid ]; do
   log "[wait] wait mysql start up"
 done
 log "[succ] start mysql succeed"
-do_cmd $bpath/bin/mysql --defaults-file=${bpath}/etc/user.root.cnf <$init_sql
+#do_cmd $bpath/bin/mysql --defaults-file=${bpath}/etc/user.root.cnf <$init_sql
+do_cmd $bpath/bin/mysql -uroot <$init_sql
 do_cmd rm -rf $init_sql
 log "[succ]Bingo (:"
