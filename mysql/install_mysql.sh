@@ -14,35 +14,44 @@ case $# in
   ;;
 esac
 
+mysql_tar="mysql-5.6.49.tar.gz"
+mysql_src="mysql-5.6.49"
+
+
+function download_mysql_source_code() {
+
+  wget https://dev.mysql.com/get/Downloads/MySQL-5.6/$mysql_tar
+}
+
 
 function check_system_tools() {
-    local dependecy_tools=(make cmake gcc gcc-c++ openssl-devel ncurses-devel)
-    local need_install_num=0
-    local need_install_tools=()
+  local dependecy_tools=(make cmake gcc gcc-c++ openssl-devel ncurses-devel)
+  local need_install_num=0
+  local need_install_tools=()
 
-    echo "检查依赖工具包是否安装 ${dependecy_tools[@]}"
+  echo "检查依赖工具包是否安装 ${dependecy_tools[@]}"
 
-    for tool in ${dependecy_tools[@]}
-    do
-        count=`yum list installed | grep -w $tool | wc -l`
-        if [[ $count -eq 0 ]];then
-            need_install_tools[$need_install_num]=$tool
-            need_install_num=`expr $need_install_num + 1`
-        fi
-    done
-
-    if [[ ${#need_install_tools[@]} -ne 0 ]];then
-      echo "有待安装的工具：${need_install_tools[@]}"
-      if [[ `whoami` != "root" ]];then
-        echo "NEED ROOT POWER"
-        exit
-      else
-        yum -y install ${need_install_tools[@]}
-      fi
+  for tool in ${dependecy_tools[@]}
+  do
+    count=`yum list installed | grep -w $tool | wc -l`
+    if [[ $count -eq 0 ]];then
+      need_install_tools[$need_install_num]=$tool
+      need_install_num=`expr $need_install_num + 1`
     fi
+  done
 
-    echo "检查完成，等待60s"
-    sleep 60
+  if [[ ${#need_install_tools[@]} -ne 0 ]];then
+    echo "有待安装的工具：${need_install_tools[@]}"
+    if [[ `whoami` != "root" ]];then
+      echo "NEED ROOT POWER"
+      exit
+    else
+      yum -y install ${need_install_tools[@]}
+    fi
+  fi
+
+  echo "检查完成，等待60s"
+  sleep 60
 }
 
 function log() {
@@ -81,8 +90,7 @@ server_id=$(ping -4 -c 1 $(hostname) | head -n 1 | awk '{print $3}' | sed -r 's/
 server_id="${server_id}${sec}"
 server_id=$(($server_id % 4294967295))
 
-tar zxvf mysql-5.6.49.tar.gz
-src_path="mysql-5.6.49"
+tar zxvf $mysql_tar
 
 ps -ef | grep $bpath/ | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1
 do_cmd rm -rf $bpath
@@ -115,14 +123,13 @@ function generate_sql_cnf() {
   local bpath=$1
   local port=$2
   local server_id=$3
-  local sql_file=$4
 
   #local root_pwd=$(generate_pwd)
   #local admin_pwd=$(generate_pwd)
   root_pwd="root"
   admin_pwd="admin"
 
-  cat >$sql_file <<_EOF_
+  cat >$bpath/etc/init.sql <<_EOF_
 SET SQL_LOG_BIN=0;
 
 -- clear mysql-bin.00000* create by mysql_install_db
@@ -351,7 +358,7 @@ _EOF_
 }
 
 
-do_cmd cd ${cur_dir}/${src_path}/
+do_cmd cd ${cur_dir}/${mysql_src}/
 do_cmd mkdir -p ./release
 do_cmd cd ./release
 export CFLAGS="-O3 -g"
@@ -405,8 +412,7 @@ if [ ! -d var ]; then
   do_cmd mkdir var
 fi
 
-init_sql=$cur_dir/init.sql
-do_cmd generate_sql_cnf $bpath $port $server_id $init_sql
+do_cmd generate_sql_cnf $bpath $port $server_id
 do_cmd cp -v $bpath/share/mysql/mysql.server $bpath/bin/
 do_cmd chmod 644 $bpath/etc/my.cnf 2>/dev/null
 do_cmd chmod 644 $bpath/etc/my*.cnf 2>/dev/null
@@ -423,7 +429,7 @@ until [ -f $bpath/var/mysql.pid ]; do
   log "[wait] wait mysql start up"
 done
 log "[succ] start mysql succeed"
-#do_cmd $bpath/bin/mysql --defaults-file=${bpath}/etc/user.root.cnf <$init_sql
-do_cmd $bpath/bin/mysql -uroot <$init_sql
-do_cmd rm -rf $init_sql
+#do_cmd $bpath/bin/mysql --defaults-file=${bpath}/etc/user.root.cnf <$bpath/etc/init.sql
+do_cmd $bpath/bin/mysql -uroot <$bpath/etc/init.sql
 log "[succ]Bingo (:"
+exit 0
